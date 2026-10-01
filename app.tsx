@@ -238,6 +238,7 @@ function RecoveryLogView({ subPath: _subPath }: PluginNavPanelProps) {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -268,10 +269,33 @@ function RecoveryLogView({ subPath: _subPath }: PluginNavPanelProps) {
   useEffect(() => { void load(); }, []);
   useRealtime("policies-changed", () => void load());
 
+  const deleteLog = async (id: string) => {
+    setBusyId(id);
+    try {
+      await rpc.call("log_delete", { id });
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusyId(null);
+    }
+  };
+  const clearLogs = async () => {
+    setBusyId("all");
+    try {
+      await rpc.call("logs_clear", null);
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
-      <header><h2 className="text-lg font-semibold text-foreground">Recovery log</h2><p className="mt-1 text-sm text-muted-foreground">The latest 200 recorded recovery decisions.</p></header>
+      <header className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-foreground">Recovery log</h2><p className="mt-1 text-sm text-muted-foreground">The latest 200 recorded recovery decisions.</p></div><button type="button" className="rounded-md border border-destructive/50 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50" disabled={!enabled || busyId !== null || logs.length === 0} onClick={() => void clearLogs()}>Clear all logs</button></header>
       <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/20 p-4"><div><div className="text-sm font-medium">Log recording</div><div className="text-xs text-muted-foreground">{enabled ? "Recording failures and recovery decisions." : "Recording is off; turn it on to capture future failures."}</div></div><label className="flex shrink-0 items-center gap-2 text-sm"><input type="checkbox" checked={enabled} disabled={loading} onChange={(event) => void toggleLogging((event.currentTarget as HTMLInputElement).checked)} /><span>{enabled ? "On" : "Off"}</span></label></div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {loading ? <p className="text-sm text-muted-foreground">Loading log…</p> : enabled && logs.length === 0 ? <p className="text-sm text-muted-foreground">No recovery decisions recorded yet.</p> : null}
@@ -281,7 +305,7 @@ function RecoveryLogView({ subPath: _subPath }: PluginNavPanelProps) {
           <div className="text-xs text-muted-foreground">Thread: <code>{entry.threadId}</code> · Request: <code>{entry.requestId}</code> · Attempt: {entry.attemptNumber}</div>
           <p className="break-words rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-red-700 dark:text-red-300"><span className="font-semibold">Error:</span> {entry.errorMessage ?? "No error message found in retained thread events."}</p>
           <div>Decision: {entry.reason}{entry.matchedRule ? ` (rule: ${entry.matchedRule})` : ""}</div>
-          <div className="text-muted-foreground">Result: {entry.result}{entry.sendAt ? ` · scheduled ${new Date(entry.sendAt).toLocaleString()}` : ""}</div>
+          <div className="flex items-center justify-between gap-3"><div className="text-muted-foreground">Result: {entry.result}{entry.sendAt ? ` · scheduled ${new Date(entry.sendAt).toLocaleString()}` : ""}</div><button type="button" className="rounded-md px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50" disabled={busyId !== null} onClick={() => void deleteLog(entry.id)}>{busyId === entry.id ? "Deleting…" : "Delete"}</button></div>
           {entry.providerCode || entry.httpStatusCode ? <div className="text-xs text-muted-foreground">{entry.providerCode ? `Provider code: ${entry.providerCode}` : ""}{entry.providerCode && entry.httpStatusCode ? " · " : ""}{entry.httpStatusCode ? `HTTP ${entry.httpStatusCode}` : ""}</div> : null}
         </article>
       )) : null}

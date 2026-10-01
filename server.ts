@@ -70,6 +70,8 @@ export const rpcContract = defineRpcContract({
   custom_rule_save: { input: newCustomRuleSchema, output: customRuleSchema },
   custom_rule_delete: { input: z.object({ id: z.string().min(1) }), output: z.object({ deleted: z.boolean() }) },
   logs_visibility_save: { input: z.object({ showLogs: z.boolean() }), output: z.object({ showLogs: z.boolean() }) },
+  log_delete: { input: z.object({ id: z.string().min(1) }), output: z.object({ deleted: z.boolean() }) },
+  logs_clear: { input: z.null(), output: z.object({ deleted: z.number().int().nonnegative() }) },
 });
 
 export type PolicyRecord = z.infer<typeof policyRecordSchema>;
@@ -213,6 +215,20 @@ export default async function plugin(bb: BbPluginApi) {
       await bb.storage.kv.set("logs-enabled", logsEnabled);
       bb.realtime.publish("policies-changed", { count: recordsFrom(overrides).length + customRules.length });
       return { showLogs: logsEnabled };
+    },
+    log_delete: async ({ id }) => {
+      const before = recoveryLogs.length;
+      recoveryLogs = recoveryLogs.filter((entry) => entry.id !== id);
+      await bb.storage.kv.set("recovery-logs", recoveryLogs);
+      bb.realtime.publish("policies-changed", { count: recordsFrom(overrides).length + customRules.length });
+      return { deleted: before - recoveryLogs.length === 1 };
+    },
+    logs_clear: async () => {
+      const deleted = recoveryLogs.length;
+      recoveryLogs = [];
+      await bb.storage.kv.set("recovery-logs", recoveryLogs);
+      bb.realtime.publish("policies-changed", { count: recordsFrom(overrides).length + customRules.length });
+      return { deleted };
     },
   });
 
