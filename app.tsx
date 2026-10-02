@@ -239,6 +239,7 @@ function RecoveryLogView({ subPath: _subPath }: PluginNavPanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionFilter, setActionFilter] = useState<"all" | RecoveryLog["action"]>("all");
 
   const load = async () => {
     try {
@@ -292,17 +293,29 @@ function RecoveryLogView({ subPath: _subPath }: PluginNavPanelProps) {
     }
   };
 
+  const filteredLogs = actionFilter === "all" ? logs : logs.filter((entry) => entry.action === actionFilter);
+
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col space-y-4 overflow-hidden p-6">
       <header className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-foreground">Recovery log</h2><p className="mt-1 text-sm text-muted-foreground">The latest 200 recorded recovery decisions.</p></div><button type="button" className="rounded-md border border-destructive/50 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50" disabled={!enabled || busyId !== null || logs.length === 0} onClick={() => void clearLogs()}>Clear all logs</button></header>
       <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/20 p-4"><div><div className="text-sm font-medium">Log recording</div><div className="text-xs text-muted-foreground">{enabled ? "Recording failures and recovery decisions." : "Recording is off; turn it on to capture future failures."}</div></div><label className="flex shrink-0 items-center gap-2 text-sm"><input type="checkbox" checked={enabled} disabled={loading} onChange={(event) => void toggleLogging((event.currentTarget as HTMLInputElement).checked)} /><span>{enabled ? "On" : "Off"}</span></label></div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="text-sm font-medium" htmlFor="recovery-log-action-filter">Filter by action</label>
+        <select id="recovery-log-action-filter" className="rounded-md border border-input bg-background px-3 py-1.5 text-sm" value={actionFilter} onChange={(event) => setActionFilter((event.currentTarget as HTMLSelectElement).value as typeof actionFilter)}>
+          <option value="all">All actions ({logs.length})</option>
+          <option value="ignore">Ignored ({logs.filter((entry) => entry.action === "ignore").length})</option>
+          <option value="retry">Retried ({logs.filter((entry) => entry.action === "retry").length})</option>
+          <option value="continue">Continued ({logs.filter((entry) => entry.action === "continue").length})</option>
+        </select>
+      </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {loading ? <p className="text-sm text-muted-foreground">Loading log…</p> : null}
       {!loading && enabled && logs.length === 0 ? <p className="text-sm text-muted-foreground">No recovery decisions recorded yet.</p> : null}
+      {!loading && enabled && logs.length > 0 && filteredLogs.length === 0 ? <p className="text-sm text-muted-foreground">No logs match this action filter.</p> : null}
       {!loading && !enabled ? <p className="text-sm text-muted-foreground">Log recording is turned off.</p> : null}
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain">
-        {enabled ? logs.map((entry) => (
+        {enabled ? filteredLogs.map((entry) => (
           <article key={entry.id} className="space-y-2 rounded-lg border border-border bg-card p-4 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2"><strong>{entry.action.toUpperCase()} · {entry.category ?? "Unclassified"}</strong><time className="text-xs text-muted-foreground">{new Date(entry.timestamp).toLocaleString()}</time></div>
             <div className="text-xs text-muted-foreground">Thread: <code>{entry.threadId}</code> · Request: <code>{entry.requestId}</code> · Attempt: {entry.attemptNumber}</div>
