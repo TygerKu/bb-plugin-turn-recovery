@@ -156,15 +156,22 @@ async function errorMessageForFailure(bb: BbPluginApi, failure: Pick<PluginTurnF
 export default async function plugin(bb: BbPluginApi) {
   let overrides = (await bb.storage.kv.get<StoredOverrides>("policy-overrides")) ?? {};
   const savedCustomRules = await bb.storage.kv.get<CustomRuleRecord[]>("custom-rules");
-  const defaultsSeeded = await bb.storage.kv.get<boolean>("custom-rules-defaults-seeded");
-  let customRules = savedCustomRules ?? [];
+  let customRules = (await bb.storage.kv.get<CustomRuleRecord[]>("custom-rules")) ?? [];
+  let defaultsSeeded = await bb.storage.kv.get<boolean>("custom-rules-defaults-seeded");
   if (!defaultsSeeded) {
     customRules = [
       ...DEFAULT_CUSTOM_RULES.map((rule) => customRules.find((saved) => saved.id === rule.id) ?? rule),
       ...customRules.filter((saved) => !DEFAULT_CUSTOM_RULES.some((rule) => rule.id === saved.id)),
     ];
+    defaultsSeeded = true;
     await bb.storage.kv.set("custom-rules-defaults-seeded", true);
     await bb.storage.kv.set("custom-rules", customRules);
+  } else {
+    const newDefaults = DEFAULT_CUSTOM_RULES.filter((rule) => !customRules.some((saved) => saved.id === rule.id));
+    if (newDefaults.length > 0) {
+      customRules = [...customRules, ...newDefaults];
+      await bb.storage.kv.set("custom-rules", customRules);
+    }
   }
   let logsEnabled = (await bb.storage.kv.get<boolean>("logs-enabled")) ?? false;
   let recoveryLogs = (await bb.storage.kv.get<RecoveryLog[]>("recovery-logs")) ?? [];

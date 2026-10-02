@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_POLICIES, ERROR_CATEGORIES, decideRecovery } from "./policy.js";
+import { DEFAULT_CUSTOM_RULES, DEFAULT_POLICIES, ERROR_CATEGORIES, decideRecovery } from "./policy.js";
 import type { PluginTurnFailedEvent } from "@get-bb/plugin-sdk";
 
 function makeFailure(overrides: Partial<PluginTurnFailedEvent> = {}): PluginTurnFailedEvent {
@@ -53,6 +53,20 @@ describe("recovery policy", () => {
     policies.policy.maxRetries = null;
     expect(decideRecovery({ failure: makeFailure({ attemptNumber: 10_000 }), policies, now: 0, random: 0 }).action).toBe("retry");
   });
+  it("continues interrupted upstream response streams by default", () => {
+    const rule = DEFAULT_CUSTOM_RULES.find((item) => item.id === "default-upstream-response-stream-interrupted");
+    expect(rule).toBeDefined();
+    const decision = decideRecovery({
+      failure: makeFailure({ errorInfo: { category: "unknown", providerCode: null, httpStatusCode: 502 } }),
+      policies: DEFAULT_POLICIES,
+      customRules: rule ? [rule] : [],
+      errorMessage: "Upstream response stream was interrupted while receiving output.",
+      now: 0,
+      random: 0,
+    });
+    expect(decision).toMatchObject({ action: "continue", reason: "Custom policy: Upstream response stream interrupted" });
+  });
+
   it("matches error-message rules case-insensitively", () => {
     const rule = {
       id: "http2-message",

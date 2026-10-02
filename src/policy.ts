@@ -62,7 +62,13 @@ export const DEFAULT_CUSTOM_RULES: CustomPolicyRule[] = [
     messageIncludes: "Invalid prompt:",
     policy: { action: "continue", maxRetries: 4, initialDelayMs: 1_000, multiplier: 1, jitterMs: 1_000 },
   },
-];
+  {
+    id: "default-upstream-response-stream-interrupted",
+    name: "Upstream response stream interrupted",
+    messageIncludes: "Upstream response stream was interrupted",
+    policy: { action: "continue", maxRetries: 4, initialDelayMs: 1_000, multiplier: 1, jitterMs: 1_000 },
+  },
+ ];
 
 export interface RecoveryDecision {
   action: FailureAction;
