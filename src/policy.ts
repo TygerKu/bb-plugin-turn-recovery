@@ -68,6 +68,12 @@ export const DEFAULT_CUSTOM_RULES: CustomPolicyRule[] = [
     messageIncludes: "Upstream response stream was interrupted",
     policy: { action: "continue", maxRetries: 4, initialDelayMs: 1_000, multiplier: 1, jitterMs: 1_000 },
   },
+  {
+    id: "default-do-request-failed",
+    name: "Upstream do_request_failed",
+    messageIncludes: "do_request_failed",
+    policy: { action: "continue", maxRetries: 4, initialDelayMs: 1_000, multiplier: 1, jitterMs: 1_000 },
+  },
  ];
 
 export interface RecoveryDecision {

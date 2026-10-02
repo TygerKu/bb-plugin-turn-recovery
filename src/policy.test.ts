@@ -53,6 +53,20 @@ describe("recovery policy", () => {
     policies.policy.maxRetries = null;
     expect(decideRecovery({ failure: makeFailure({ attemptNumber: 10_000 }), policies, now: 0, random: 0 }).action).toBe("retry");
   });
+  it("continues do_request_failed API errors by default", () => {
+    const rule = DEFAULT_CUSTOM_RULES.find((item) => item.id === "default-do-request-failed");
+    expect(rule).toBeDefined();
+    const decision = decideRecovery({
+      failure: makeFailure({ errorInfo: { category: "unknown", providerCode: "do_request_failed", httpStatusCode: 500 } }),
+      policies: DEFAULT_POLICIES,
+      customRules: rule ? [rule] : [],
+      errorMessage: '500: {"message":"upstream error: do request failed (request id: req-123)","code":"do_request_failed"}',
+      now: 0,
+      random: 0,
+    });
+    expect(decision).toMatchObject({ action: "continue", reason: "Custom policy: Upstream do_request_failed" });
+  });
+
   it("continues interrupted upstream response streams by default", () => {
     const rule = DEFAULT_CUSTOM_RULES.find((item) => item.id === "default-upstream-response-stream-interrupted");
     expect(rule).toBeDefined();

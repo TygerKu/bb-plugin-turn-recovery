@@ -155,7 +155,6 @@ async function errorMessageForFailure(bb: BbPluginApi, failure: Pick<PluginTurnF
 
 export default async function plugin(bb: BbPluginApi) {
   let overrides = (await bb.storage.kv.get<StoredOverrides>("policy-overrides")) ?? {};
-  const savedCustomRules = await bb.storage.kv.get<CustomRuleRecord[]>("custom-rules");
   let customRules = (await bb.storage.kv.get<CustomRuleRecord[]>("custom-rules")) ?? [];
   let defaultsSeeded = await bb.storage.kv.get<boolean>("custom-rules-defaults-seeded");
   if (!defaultsSeeded) {
