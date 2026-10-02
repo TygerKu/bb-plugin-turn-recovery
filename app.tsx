@@ -294,21 +294,25 @@ function RecoveryLogView({ subPath: _subPath }: PluginNavPanelProps) {
 
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col space-y-4 overflow-hidden p-6">
       <header className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-foreground">Recovery log</h2><p className="mt-1 text-sm text-muted-foreground">The latest 200 recorded recovery decisions.</p></div><button type="button" className="rounded-md border border-destructive/50 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50" disabled={!enabled || busyId !== null || logs.length === 0} onClick={() => void clearLogs()}>Clear all logs</button></header>
       <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/20 p-4"><div><div className="text-sm font-medium">Log recording</div><div className="text-xs text-muted-foreground">{enabled ? "Recording failures and recovery decisions." : "Recording is off; turn it on to capture future failures."}</div></div><label className="flex shrink-0 items-center gap-2 text-sm"><input type="checkbox" checked={enabled} disabled={loading} onChange={(event) => void toggleLogging((event.currentTarget as HTMLInputElement).checked)} /><span>{enabled ? "On" : "Off"}</span></label></div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {loading ? <p className="text-sm text-muted-foreground">Loading log…</p> : enabled && logs.length === 0 ? <p className="text-sm text-muted-foreground">No recovery decisions recorded yet.</p> : null}
-      {enabled ? logs.map((entry) => (
-        <article key={entry.id} className="space-y-2 rounded-lg border border-border bg-card p-4 text-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2"><strong>{entry.action.toUpperCase()} · {entry.category ?? "Unclassified"}</strong><time className="text-xs text-muted-foreground">{new Date(entry.timestamp).toLocaleString()}</time></div>
-          <div className="text-xs text-muted-foreground">Thread: <code>{entry.threadId}</code> · Request: <code>{entry.requestId}</code> · Attempt: {entry.attemptNumber}</div>
-          <p className="break-words rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-red-700 dark:text-red-300"><span className="font-semibold">Error:</span> {entry.errorMessage ?? "No error message found in retained thread events."}</p>
-          <div>Decision: {entry.reason}{entry.matchedRule ? ` (rule: ${entry.matchedRule})` : ""}</div>
-          <div className="flex items-center justify-between gap-3"><div className="text-muted-foreground">Result: {entry.result}{entry.sendAt ? ` · scheduled ${new Date(entry.sendAt).toLocaleString()}` : ""}</div><button type="button" className="rounded-md px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50" disabled={busyId !== null} onClick={() => void deleteLog(entry.id)}>{busyId === entry.id ? "Deleting…" : "Delete"}</button></div>
-          {entry.providerCode || entry.httpStatusCode ? <div className="text-xs text-muted-foreground">{entry.providerCode ? `Provider code: ${entry.providerCode}` : ""}{entry.providerCode && entry.httpStatusCode ? " · " : ""}{entry.httpStatusCode ? `HTTP ${entry.httpStatusCode}` : ""}</div> : null}
-        </article>
-      )) : null}
+      {loading ? <p className="text-sm text-muted-foreground">Loading log…</p> : null}
+      {!loading && enabled && logs.length === 0 ? <p className="text-sm text-muted-foreground">No recovery decisions recorded yet.</p> : null}
+      {!loading && !enabled ? <p className="text-sm text-muted-foreground">Log recording is turned off.</p> : null}
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain">
+        {enabled ? logs.map((entry) => (
+          <article key={entry.id} className="space-y-2 rounded-lg border border-border bg-card p-4 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2"><strong>{entry.action.toUpperCase()} · {entry.category ?? "Unclassified"}</strong><time className="text-xs text-muted-foreground">{new Date(entry.timestamp).toLocaleString()}</time></div>
+            <div className="text-xs text-muted-foreground">Thread: <code>{entry.threadId}</code> · Request: <code>{entry.requestId}</code> · Attempt: {entry.attemptNumber}</div>
+            <p className="break-words rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-red-700 dark:text-red-300"><span className="font-semibold">Error:</span> {entry.errorMessage ?? "No error message found in retained thread events."}</p>
+            <div>Decision: {entry.reason}{entry.matchedRule ? ` (rule: ${entry.matchedRule})` : ""}</div>
+            <div className="flex items-center justify-between gap-3"><div className="text-muted-foreground">Result: {entry.result}{entry.sendAt ? ` · scheduled ${new Date(entry.sendAt).toLocaleString()}` : ""}</div><button type="button" className="rounded-md px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50" disabled={busyId !== null} onClick={() => void deleteLog(entry.id)}>{busyId === entry.id ? "Deleting…" : "Delete"}</button></div>
+            {entry.providerCode || entry.httpStatusCode ? <div className="text-xs text-muted-foreground">{entry.providerCode ? `Provider code: ${entry.providerCode}` : ""}{entry.providerCode && entry.httpStatusCode ? " · " : ""}{entry.httpStatusCode ? `HTTP ${entry.httpStatusCode}` : ""}</div> : null}
+          </article>
+        )) : null}
+      </div>
     </div>
   );
 }
