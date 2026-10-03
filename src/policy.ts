@@ -74,6 +74,12 @@ export const DEFAULT_CUSTOM_RULES: CustomPolicyRule[] = [
     messageIncludes: "do_request_failed",
     policy: { action: "continue", maxRetries: 4, initialDelayMs: 1_000, multiplier: 1, jitterMs: 1_000 },
   },
+  {
+    id: "default-concurrency-limit-exceeded",
+    name: "Concurrency limit exceeded",
+    messageIncludes: "Concurrency limit exceeded for user",
+    policy: { action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 2, jitterMs: 5_000 },
+  },
  ];
 
 export interface RecoveryDecision {

@@ -5,7 +5,8 @@ Turn Recovery applies configurable recovery actions to newly failed turns. It re
 ## Built-in behavior
 
 - Connection failures, stream disconnections, and policy errors continue the failed turn without adding a user-visible message.
-- Default custom rules continue messages containing `Upstream HTTP/2 stream failed`, `Upstream response stream was interrupted`, `do_request_failed`, and `Invalid prompt:`.
+- The default custom rule retries `Concurrency limit exceeded for user` indefinitely, starting after 5 seconds with exponential backoff and jitter.
+- Other default custom rules continue messages containing `Upstream HTTP/2 stream failed`, `Upstream response stream was interrupted`, `do_request_failed`, and `Invalid prompt:`.
 - Provider overloads retry with exponential backoff and jitter.
 - Rate limits retry only when BB reports a blocked subscription window with a reset time; retries are scheduled at or after that reset.
 - Other categories are ignored unless you configure a policy or matching custom rule.

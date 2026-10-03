@@ -53,6 +53,22 @@ describe("recovery policy", () => {
     policies.policy.maxRetries = null;
     expect(decideRecovery({ failure: makeFailure({ attemptNumber: 10_000 }), policies, now: 0, random: 0 }).action).toBe("retry");
   });
+  it("retries concurrency-limit errors with indefinite exponential backoff and jitter", () => {
+    const rule = DEFAULT_CUSTOM_RULES.find((item) => item.id === "default-concurrency-limit-exceeded");
+    expect(rule).toBeDefined();
+    const decision = decideRecovery({
+      failure: makeFailure({ attemptNumber: 3, errorInfo: { category: "unknown", providerCode: null, httpStatusCode: 429 } }),
+      policies: DEFAULT_POLICIES,
+      customRules: rule ? [rule] : [],
+      errorMessage: "Concurrency limit exceeded for user; please retry later error",
+      now: 10_000,
+      random: 0.5,
+    });
+    expect(rule?.policy).toEqual({ action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 2, jitterMs: 5_000 });
+    expect(decision).toMatchObject({ action: "retry", sendAt: 32_500, reason: "Turn Recovery: Concurrency limit exceeded" });
+  });
+
+
   it("continues do_request_failed API errors by default", () => {
     const rule = DEFAULT_CUSTOM_RULES.find((item) => item.id === "default-do-request-failed");
     expect(rule).toBeDefined();

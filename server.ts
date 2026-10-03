@@ -166,11 +166,21 @@ export default async function plugin(bb: BbPluginApi) {
     await bb.storage.kv.set("custom-rules-defaults-seeded", true);
     await bb.storage.kv.set("custom-rules", customRules);
   } else {
-    const newDefaults = DEFAULT_CUSTOM_RULES.filter((rule) => !customRules.some((saved) => saved.id === rule.id));
-    if (newDefaults.length > 0) {
-      customRules = [...customRules, ...newDefaults];
-      await bb.storage.kv.set("custom-rules", customRules);
+    const changedDefaults = DEFAULT_CUSTOM_RULES.filter((rule) => !customRules.some((saved) => saved.id === rule.id));
+    const concurrencyRule = DEFAULT_CUSTOM_RULES.find((rule) => rule.id === "default-concurrency-limit-exceeded");
+    const previousConcurrencyPolicy: CategoryPolicy = {
+      action: "continue",
+      maxRetries: 4,
+      initialDelayMs: 1_000,
+      multiplier: 1,
+      jitterMs: 1_000,
+    };
+    if (concurrencyRule) {
+      const index = customRules.findIndex((saved) => saved.id === concurrencyRule.id && JSON.stringify(saved.policy) === JSON.stringify(previousConcurrencyPolicy));
+      if (index >= 0) customRules[index] = concurrencyRule;
     }
+    if (changedDefaults.length > 0) customRules = [...customRules, ...changedDefaults];
+    await bb.storage.kv.set("custom-rules", customRules);
   }
   let logsEnabled = (await bb.storage.kv.get<boolean>("logs-enabled")) ?? false;
   let recoveryLogs = (await bb.storage.kv.get<RecoveryLog[]>("recovery-logs")) ?? [];
