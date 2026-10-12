@@ -80,6 +80,12 @@ export const DEFAULT_CUSTOM_RULES: CustomPolicyRule[] = [
     messageIncludes: "Concurrency limit exceeded for user",
     policy: { action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 2, jitterMs: 5_000 },
   },
+  {
+    id: "default-accounts-rate-limited",
+    name: "All accounts rate-limited",
+    messageIncludes: "All available accounts are currently rate-limited",
+    policy: { action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 1, jitterMs: 0 },
+  },
  ];
 
 export interface RecoveryDecision {

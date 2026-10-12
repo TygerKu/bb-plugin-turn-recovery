@@ -53,6 +53,20 @@ describe("recovery policy", () => {
     policies.policy.maxRetries = null;
     expect(decideRecovery({ failure: makeFailure({ attemptNumber: 10_000 }), policies, now: 0, random: 0 }).action).toBe("retry");
   });
+  it("retries account-wide rate limits every 5 seconds without backoff", () => {
+    const rule = DEFAULT_CUSTOM_RULES.find((item) => item.id === "default-accounts-rate-limited");
+    expect(rule?.policy).toEqual({ action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 1, jitterMs: 0 });
+    const decision = decideRecovery({
+      failure: makeFailure({ attemptNumber: 7, errorInfo: { category: "rate-limit", providerCode: null, httpStatusCode: 429 } }),
+      policies: DEFAULT_POLICIES,
+      customRules: rule ? [rule] : [],
+      errorMessage: '429: {"message":"All available accounts are currently rate-limited. Please retry later."}',
+      now: 10_000,
+      random: 0.9,
+    });
+    expect(decision).toMatchObject({ action: "retry", sendAt: 15_000, reason: "Turn Recovery: All accounts rate-limited" });
+  });
+
   it("retries concurrency-limit errors with indefinite exponential backoff and jitter", () => {
     const rule = DEFAULT_CUSTOM_RULES.find((item) => item.id === "default-concurrency-limit-exceeded");
     expect(rule).toBeDefined();
