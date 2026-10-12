@@ -86,6 +86,12 @@ export const DEFAULT_CUSTOM_RULES: CustomPolicyRule[] = [
     messageIncludes: "All available accounts are currently rate-limited",
     policy: { action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 1, jitterMs: 0 },
   },
+  {
+    id: "default-upstream-service-unavailable",
+    name: "Upstream service temporarily unavailable",
+    messageIncludes: "Upstream service temporarily unavailable",
+    policy: { action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 1, jitterMs: 0 },
+  },
  ];
 
 export interface RecoveryDecision {
