@@ -168,6 +168,7 @@ function CustomRuleEditor({
   const [draft, setDraft] = useState(() => draftFrom(existing?.policy ?? DEFAULT_POLICIES.unknown));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const save = async () => {
     if (!name.trim() || (!category && !messageIncludes.trim() && !providerCode.trim() && !httpStatusCode)) {
@@ -187,6 +188,7 @@ function CustomRuleEditor({
         policy: policyFromDraft(draft),
       });
       onSaved(saved);
+      setExpanded(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -206,6 +208,29 @@ function CustomRuleEditor({
       setSaving(false);
     }
   };
+  if (!existing && !expanded) {
+    return <button type="button" className="w-full rounded-lg border border-dashed border-border px-4 py-3 text-left text-sm text-muted-foreground hover:bg-accent" onClick={() => setExpanded(true)}>+ Add custom rule</button>;
+  }
+  if (existing && !expanded) {
+    const matchSummary = [
+      existing.messageIncludes ? `Message: “${existing.messageIncludes}”` : null,
+      existing.category ? `Category: ${label(existing.category)}` : null,
+      existing.providerCode ? `Code: ${existing.providerCode}` : null,
+      existing.httpStatusCode ? `HTTP ${existing.httpStatusCode}` : null,
+    ].filter(Boolean).join(" · ");
+    const policySummary = existing.policy.action === "retry"
+      ? `Retry · ${existing.policy.maxRetries === null ? "unlimited" : `${existing.policy.maxRetries} max`} · every ${existing.policy.initialDelayMs} ms`
+      : label(existing.policy.action);
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm">
+        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setExpanded(true)}>
+          <span className="block truncate font-medium text-foreground">{existing.name}</span>
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">{matchSummary} · {policySummary}</span>
+        </button>
+        <button type="button" className="shrink-0 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent" onClick={() => setExpanded(true)}>Edit</button>
+      </div>
+    );
+  }
 
   const inputClass = "rounded-md border border-input bg-background px-2 py-1.5 text-sm";
   return (
@@ -338,6 +363,7 @@ function RecoverySettings() {
   const [showLogs, setShowLogs] = useState(false);
   const [available, setAvailable] = useState<ErrorCategory[]>([]);
   const [selected, setSelected] = useState<ErrorCategory | "">("");
+  const [builtInOpen, setBuiltInOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -392,10 +418,10 @@ function RecoverySettings() {
         <div className="flex flex-col gap-2 sm:flex-row"><select className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm" value={selected} onChange={(event) => setSelected((event.currentTarget as HTMLSelectElement).value as ErrorCategory | "")}><option value="">Select an error category…</option>{available.map((category) => <option key={category} value={category}>{label(category)}</option>)}</select><button type="button" className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50" disabled={!selected} onClick={() => selected && void add(selected)}>Add policy</button></div>
         <p className="mt-2 text-xs text-muted-foreground">Deleting a policy restores that category&apos;s built-in default.</p>
       </div>
-      <section className="space-y-3"><div><h3 className="text-base font-semibold text-foreground">Custom error rules</h3><p className="mt-1 text-xs text-muted-foreground">Match one or more of the provider message substring, error category, provider code, or HTTP status. Every specified condition must match.</p></div>{customRules.map((rule) => <CustomRuleEditor key={rule.id} rpc={rpc} existing={rule} onSaved={customSaved} onDeleted={customDeleted} />)}<CustomRuleEditor key="new-custom-rule" rpc={rpc} onSaved={customSaved} /></section>
+      <section className="space-y-3"><div><h3 className="text-base font-semibold text-foreground">Custom error rules <span className="text-sm font-normal text-muted-foreground">({customRules.length})</span></h3><p className="mt-1 text-xs text-muted-foreground">Match one or more of the provider message substring, error category, provider code, or HTTP status. Every specified condition must match.</p></div>{customRules.map((rule) => <CustomRuleEditor key={rule.id} rpc={rpc} existing={rule} onSaved={customSaved} onDeleted={customDeleted} />)}<CustomRuleEditor key="new-custom-rule" rpc={rpc} onSaved={customSaved} /></section>
       <section className="rounded-lg border border-border bg-muted/20 p-4"><div className="flex items-center justify-between gap-3"><label className="flex items-center gap-3"><input type="checkbox" checked={showLogs} onChange={(event) => void toggleLogs((event.currentTarget as HTMLInputElement).checked)} /><span>Show recovery log</span></label><button type="button" className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent" onClick={() => navigate.toPluginPanel("log")}>Open log page</button></div><p className="mt-1 text-xs text-muted-foreground">Enable recording of failures, original error text, selected action, and outcome. The latest 200 entries are retained.</p></section>
       {error ? <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
-      <section className="space-y-3"><h3 className="text-base font-semibold text-foreground">Built-in error categories</h3>{ERROR_CATEGORIES.map((category) => { const record = recordMap.get(category); return record ? <Editor key={category} record={record} rpc={rpc} onSaved={saved} onDeleted={deleted} /> : <DefaultRow key={category} category={category} onAdd={(value) => void add(value)} />; })}</section>
+      <section className="space-y-3"><button type="button" className="flex w-full items-center justify-between rounded-md py-1 text-left" onClick={() => setBuiltInOpen((open) => !open)} aria-expanded={builtInOpen}><span className="font-semibold text-foreground">Built-in error categories <span className="text-sm font-normal text-muted-foreground">({records.length} customized)</span></span><span className="text-xs text-muted-foreground">{builtInOpen ? "Hide" : "Show"}</span></button>{builtInOpen ? <div className="space-y-3">{ERROR_CATEGORIES.map((category) => { const record = recordMap.get(category); return record ? <Editor key={category} record={record} rpc={rpc} onSaved={saved} onDeleted={deleted} /> : <DefaultRow key={category} category={category} onAdd={(value) => void add(value)} />; })}</div> : null}</section>
     </div>
   );
 }
