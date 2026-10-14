@@ -92,6 +92,18 @@ export const DEFAULT_CUSTOM_RULES: CustomPolicyRule[] = [
     messageIncludes: "Upstream service temporarily unavailable",
     policy: { action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 1, jitterMs: 0 },
   },
+  {
+    id: "default-request-timed-out",
+    name: "Request timed out",
+    messageIncludes: "Request timed out.",
+    policy: { action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 1, jitterMs: 0 },
+  },
+  {
+    id: "default-pi-get-state-timeout",
+    name: "Pi get_state timeout",
+    messageIncludes: "pi did not answer get_state in time",
+    policy: { action: "retry", maxRetries: null, initialDelayMs: 5_000, multiplier: 1, jitterMs: 0 },
+  }
  ];
 
 export interface RecoveryDecision {

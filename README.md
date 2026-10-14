@@ -5,7 +5,7 @@ Turn Recovery applies configurable recovery actions to newly failed turns. It re
 ## Built-in behavior
 
 - Connection failures, stream disconnections, and policy errors continue the failed turn without adding a user-visible message.
-- Default custom rules retry `Concurrency limit exceeded for user` indefinitely with 5-second exponential backoff and jitter, and retry `All available accounts are currently rate-limited` and `Upstream service temporarily unavailable` indefinitely every 5 seconds without backoff.
+- Default custom rules retry `Concurrency limit exceeded for user` indefinitely with 5-second exponential backoff and jitter. `All available accounts are currently rate-limited`, `Upstream service temporarily unavailable`, `Request timed out.`, and `pi did not answer get_state in time` retry indefinitely every 5 seconds without backoff.
 - Other default custom rules continue messages containing `Upstream HTTP/2 stream failed`, `Upstream response stream was interrupted`, `do_request_failed`, and `Invalid prompt:`.
 - Provider overloads retry with exponential backoff and jitter.
 - Rate limits retry only when BB reports a blocked subscription window with a reset time; retries are scheduled at or after that reset.
